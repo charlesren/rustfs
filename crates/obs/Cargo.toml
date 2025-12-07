@@ -35,8 +35,8 @@ full = ["gpu"]
 
 [dependencies]
 # Replace rustfs-config with robotdance-config
-robotdance-config = { git = "https://github.com/charlesren/robotdance", branch = "main", features = ["observability"] }
-rustfs-utils = { workspace = true, features = ["ip", "path"] }
+robotdance-config = { path = "../../../../crates/config", features = ["observability"] }
+rustfs-utils = { path = "../utils", features = ["ip", "path", "sys"] }
 flexi_logger = { workspace = true }
 metrics = { workspace = true }
 nu-ansi-term = { workspace = true }

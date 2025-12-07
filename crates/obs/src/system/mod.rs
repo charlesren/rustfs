@@ -42,8 +42,8 @@ impl SystemObserver {
     /// It will run indefinitely until the process is terminated.
     pub async fn init_process_observer_for_pid(meter: Meter, pid: Pid) -> Result<(), GlobalError> {
         let interval_ms = rustfs_utils::get_env_u64(
-            rustfs_config::observability::ENV_OBS_METRICS_SYSTEM_INTERVAL_MS,
-            rustfs_config::observability::DEFAULT_METRICS_SYSTEM_INTERVAL_MS,
+           robotdance_config::observability::ENV_OBS_METRICS_SYSTEM_INTERVAL_MS,
+           robotdance_config::observability::DEFAULT_METRICS_SYSTEM_INTERVAL_MS,
         );
         let mut collector = collector::Collector::new(pid, meter, interval_ms)?;
         collector.run().await

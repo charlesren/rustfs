@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Replace rustfs_config with robotdance_config
 use robotdance_config::observability::{
     DEFAULT_OBS_ENVIRONMENT_PRODUCTION, ENV_OBS_ENDPOINT, ENV_OBS_ENVIRONMENT, ENV_OBS_LOG_DIRECTORY, ENV_OBS_LOG_ENDPOINT,
     ENV_OBS_LOG_FILENAME, ENV_OBS_LOG_KEEP_FILES, ENV_OBS_LOG_ROTATION_SIZE_MB, ENV_OBS_LOG_ROTATION_TIME,

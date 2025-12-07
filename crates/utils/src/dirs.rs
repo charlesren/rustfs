@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use rustfs_config::{DEFAULT_LOG_DIR, DEFAULT_LOG_FILENAME};
+use robotdance_config::{DEFAULT_LOG_DIR, DEFAULT_LOG_FILENAME};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};

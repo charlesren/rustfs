@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use rustfs_config::VERSION;
+use robotdance_config::VERSION;
 use std::env;
 use std::fmt;
 use sysinfo::System;
@@ -171,7 +171,7 @@ pub fn get_user_agent(service: ServiceType) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rustfs_config::VERSION;
+    use robotdance_config::VERSION;
     use tracing::debug;
     #[test]
     fn test_user_agent_format_basis() {

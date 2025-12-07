@@ -46,7 +46,7 @@ netif = { workspace = true, optional = true }
 nix = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
-rustfs-config = { workspace = true, features = ["constants"] }
+robotdance-config = { path = "../../../../crates/config", features = ["constants"] }
 rustls = { workspace = true, optional = true }
 rustls-pemfile = { workspace = true, optional = true }
 rustls-pki-types = { workspace = true, optional = true }

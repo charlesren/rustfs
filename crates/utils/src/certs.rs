@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use rustfs_config::{RUSTFS_TLS_CERT, RUSTFS_TLS_KEY};
+use robotdance_config::{RUSTFS_TLS_CERT, RUSTFS_TLS_KEY};
 use rustls::server::{ClientHello, ResolvesServerCert, ResolvesServerCertUsingSni};
 use rustls::sign::CertifiedKey;
 use rustls_pemfile::{certs, private_key};
