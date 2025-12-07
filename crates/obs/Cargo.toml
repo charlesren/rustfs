@@ -34,7 +34,8 @@ gpu = ["dep:nvml-wrapper"]
 full = ["gpu"]
 
 [dependencies]
-rustfs-config = { workspace = true, features = ["constants", "observability"] }
+# Replace rustfs-config with robotdance-config
+robotdance-config = { git = "https://github.com/charlesren/robotdance", branch = "main", features = ["observability"] }
 rustfs-utils = { workspace = true, features = ["ip", "path"] }
 flexi_logger = { workspace = true }
 metrics = { workspace = true }

@@ -31,7 +31,7 @@ use opentelemetry_semantic_conventions::{
     SCHEMA_URL,
     attribute::{DEPLOYMENT_ENVIRONMENT_NAME, NETWORK_LOCAL_ADDRESS, SERVICE_VERSION as OTEL_SERVICE_VERSION},
 };
-use rustfs_config::{
+use robotdance_config::{
     APP_NAME, DEFAULT_LOG_KEEP_FILES, DEFAULT_LOG_LEVEL, DEFAULT_OBS_LOG_STDOUT_ENABLED, ENVIRONMENT, METER_INTERVAL,
     SAMPLE_RATIO, SERVICE_VERSION,
     observability::{
@@ -586,7 +586,7 @@ pub(crate) fn init_telemetry(config: &OtelConfig) -> Result<OtelGuard, Telemetry
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rustfs_config::USE_STDOUT;
+    use robotdance_config::USE_STDOUT;
 
     #[test]
     fn test_production_environment_detection() {
