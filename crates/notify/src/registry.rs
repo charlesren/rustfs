@@ -17,7 +17,9 @@ use crate::factory::{MQTTTargetFactory, TargetFactory, WebhookTargetFactory};
 use futures::stream::{FuturesUnordered, StreamExt};
 use hashbrown::{HashMap, HashSet};
 use rustfs_config::{DEFAULT_DELIMITER, ENABLE_KEY, ENV_PREFIX, EnableState, notify::NOTIFY_ROUTE_PREFIX};
-use rustfs_ecstore::config::{Config, KVS};
+use storage_core::{Config, KVS};
+use storage_core::config::ConfigStorage;
+use storage_sqlite::SqliteConfigStore;
 use rustfs_targets::{Target, TargetError, target::ChannelTargetType};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -26,6 +28,8 @@ use tracing::{debug, error, info, warn};
 /// Registry for managing target factories
 pub struct TargetRegistry {
     factories: HashMap<String, Box<dyn TargetFactory>>,
+    /// Configuration storage backend (pub for integration.rs access)
+    pub(crate) config_store: Arc<dyn ConfigStorage>,
 }
 
 impl Default for TargetRegistry {
@@ -35,10 +39,30 @@ impl Default for TargetRegistry {
 }
 
 impl TargetRegistry {
-    /// Creates a new TargetRegistry with built-in factories
+    /// Creates a new TargetRegistry with built-in factories and SQLite storage
     pub fn new() -> Self {
+        // Read backend from environment variable (default: sqlite)
+        let backend = std::env::var("NOTIFY_STORAGE_BACKEND")
+            .unwrap_or_else(|_| "sqlite".to_string());
+
+        let db_path = std::env::var("NOTIFY_DB_PATH")
+            .unwrap_or_else(|_| "/var/lib/robotdance/notify.db".to_string());
+
+        // Create config storage based on backend
+        let config_store: Arc<dyn ConfigStorage> = match backend.as_str() {
+            "sqlite" => Arc::new(SqliteConfigStore::new(
+                storage_sqlite::ConnectionManager::new(&db_path).unwrap()
+            )),
+            other => panic!(
+                "Unsupported storage backend: {}. Currently only 'sqlite' is supported. \
+                 Set NOTIFY_STORAGE_BACKEND=sqlite or leave unset.",
+                other
+            ),
+        };
+
         let mut registry = TargetRegistry {
             factories: HashMap::new(),
+            config_store,
         };
 
         // Register built-in factories
@@ -293,21 +317,14 @@ impl TargetRegistry {
                 }
             }
 
-            let Some(store) = rustfs_ecstore::global::new_object_layer_fn() else {
-                return Err(TargetError::ServerNotInitialized(
-                    "Failed to save target configuration: server storage not initialized".to_string(),
-                ));
-            };
+            // Save to SQLite
+            let config_json = serde_json::to_vec(&new_config)
+                .map_err(|e| TargetError::SaveConfig(format!("JSON serialize failed: {}", e)))?;
 
-            match rustfs_ecstore::config::com::save_server_config(store, &new_config).await {
-                Ok(_) => {
-                    info!("The new configuration was saved to the system successfully.")
-                }
-                Err(e) => {
-                    error!("Failed to save the new configuration: {}", e);
-                    return Err(TargetError::SaveConfig(e.to_string()));
-                }
-            }
+            self.config_store.save_config("notify/config.json", &config_json).await
+                .map_err(|e| TargetError::SaveConfig(format!("SQLite save failed: {}", e)))?;
+
+            info!("Notification configuration saved to SQLite successfully.");
         }
 
         info!(count = successful_targets.len(), "All target processing completed");

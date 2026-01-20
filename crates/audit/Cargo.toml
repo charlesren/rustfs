@@ -28,7 +28,8 @@ categories = ["web-programming", "development-tools", "asynchronous", "api-bindi
 [dependencies]
 rustfs-targets = { workspace = true }
 rustfs-config = { workspace = true, features = ["audit", "constants"] }
-rustfs-ecstore = { workspace = true }
+storage-core = { path = "../../../../crates/storage-core" }
+storage-sqlite = { path = "../../../../crates/storage-sqlite" }
 async-trait = { workspace = true }
 chrono = { workspace = true }
 const-str = { workspace = true }

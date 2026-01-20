@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use crate::{BucketNotificationConfig, Event, EventArgs, LifecycleError, NotificationError, NotificationSystem};
-use rustfs_ecstore::config::Config;
+use storage_core::Config;
 use rustfs_targets::{EventName, arn::TargetID};
 use std::sync::{Arc, OnceLock};
 use tracing::error;
