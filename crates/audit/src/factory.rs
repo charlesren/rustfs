@@ -22,7 +22,7 @@ use rustfs_config::{
     MQTT_QUEUE_LIMIT, MQTT_RECONNECT_INTERVAL, MQTT_TOPIC, MQTT_USERNAME, WEBHOOK_AUTH_TOKEN, WEBHOOK_CLIENT_CERT,
     WEBHOOK_CLIENT_KEY, WEBHOOK_ENDPOINT, WEBHOOK_QUEUE_DIR, WEBHOOK_QUEUE_LIMIT,
 };
-use rustfs_ecstore::config::KVS;
+use storage_core::KVS;
 use rustfs_targets::{
     Target,
     error::TargetError,
@@ -71,7 +71,7 @@ impl TargetFactory for WebhookTargetFactory {
             queue_dir: config.lookup(WEBHOOK_QUEUE_DIR).unwrap_or(AUDIT_DEFAULT_DIR.to_string()),
             queue_limit: config
                 .lookup(WEBHOOK_QUEUE_LIMIT)
-                .and_then(|v| v.parse::<u64>().ok())
+                .and_then(|v: String| v.parse::<u64>().ok())
                 .unwrap_or(DEFAULT_LIMIT),
             client_cert: config.lookup(WEBHOOK_CLIENT_CERT).unwrap_or_default(),
             client_key: config.lookup(WEBHOOK_CLIENT_KEY).unwrap_or_default(),
@@ -140,7 +140,7 @@ impl TargetFactory for MQTTTargetFactory {
             topic,
             qos: config
                 .lookup(MQTT_QOS)
-                .and_then(|v| v.parse::<u8>().ok())
+                .and_then(|v: String| v.parse::<u8>().ok())
                 .map(|q| match q {
                     0 => QoS::AtMostOnce,
                     1 => QoS::AtLeastOnce,
@@ -152,18 +152,18 @@ impl TargetFactory for MQTTTargetFactory {
             password: config.lookup(MQTT_PASSWORD).unwrap_or_default(),
             max_reconnect_interval: config
                 .lookup(MQTT_RECONNECT_INTERVAL)
-                .and_then(|v| v.parse::<u64>().ok())
+                .and_then(|v: String| v.parse::<u64>().ok())
                 .map(Duration::from_secs)
                 .unwrap_or_else(|| Duration::from_secs(5)),
             keep_alive: config
                 .lookup(MQTT_KEEP_ALIVE_INTERVAL)
-                .and_then(|v| v.parse::<u64>().ok())
+                .and_then(|v: String| v.parse::<u64>().ok())
                 .map(Duration::from_secs)
                 .unwrap_or_else(|| Duration::from_secs(30)),
             queue_dir: config.lookup(MQTT_QUEUE_DIR).unwrap_or(AUDIT_DEFAULT_DIR.to_string()),
             queue_limit: config
                 .lookup(MQTT_QUEUE_LIMIT)
-                .and_then(|v| v.parse::<u64>().ok())
+                .and_then(|v: String| v.parse::<u64>().ok())
                 .unwrap_or(DEFAULT_LIMIT),
             target_type: rustfs_targets::target::TargetType::AuditLog,
         };
@@ -191,8 +191,8 @@ impl TargetFactory for MQTTTargetFactory {
         }
 
         if let Some(qos_str) = config.lookup(MQTT_QOS) {
-            let qos = qos_str
-                .parse::<u8>()
+            let qos: u8 = qos_str
+                .parse()
                 .map_err(|_| TargetError::Configuration("Invalid QoS value".to_string()))?;
             if qos > 2 {
                 return Err(TargetError::Configuration("QoS must be 0, 1, or 2".to_string()));

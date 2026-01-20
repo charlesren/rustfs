@@ -19,7 +19,7 @@ use crate::{
 };
 use hashbrown::HashMap;
 use rustfs_config::notify::{DEFAULT_NOTIFY_TARGET_STREAM_CONCURRENCY, ENV_NOTIFY_TARGET_STREAM_CONCURRENCY};
-use rustfs_ecstore::config::{Config, KVS};
+use storage_core::{Config, KVS};
 use rustfs_targets::EventName;
 use rustfs_targets::arn::TargetID;
 use rustfs_targets::store::{Key, Store};
@@ -220,15 +220,13 @@ impl NotificationSystem {
     where
         F: FnMut(&mut Config) -> bool, // The closure returns a boolean value indicating whether the configuration has been changed
     {
-        let Some(store) = rustfs_ecstore::global::new_object_layer_fn() else {
-            return Err(NotificationError::StorageNotAvailable(
-                "Failed to save target configuration: server storage not initialized".to_string(),
-            ));
-        };
-
-        let mut new_config = rustfs_ecstore::config::com::read_config_without_migrate(store.clone())
+        // Read current config from storage
+        let config_bytes = self.registry.config_store.load_config("notify/config.json")
             .await
-            .map_err(|e| NotificationError::ReadConfig(e.to_string()))?;
+            .map_err(|e| NotificationError::ReadConfig(format!("Failed to load config: {}", e)))?;
+
+        let mut new_config: Config = serde_json::from_slice(&config_bytes)
+            .map_err(|e| NotificationError::ReadConfig(format!("Failed to parse config: {}", e)))?;
 
         if !modifier(&mut new_config) {
             // If the closure indication has not changed, return in advance
@@ -237,9 +235,12 @@ impl NotificationSystem {
         }
 
         // Save the modified configuration to storage
-        rustfs_ecstore::config::com::save_server_config(store, &new_config)
+        let config_json = serde_json::to_vec(&new_config)
+            .map_err(|e| NotificationError::SaveConfig(format!("JSON serialize failed: {}", e)))?;
+
+        self.registry.config_store.save_config("notify/config.json", &config_json)
             .await
-            .map_err(|e| NotificationError::SaveConfig(e.to_string()))?;
+            .map_err(|e| NotificationError::SaveConfig(format!("SQLite save failed: {}", e)))?;
 
         info!("Configuration updated. Reloading system...");
         self.reload_config(new_config).await
@@ -554,7 +555,7 @@ pub async fn load_config_from_file(path: &str, system: &NotificationSystem) -> R
         .await
         .map_err(|e| NotificationError::Configuration(format!("Failed to read config file: {e}")))?;
 
-    let config = Config::unmarshal(config_data.as_slice())
+    let config: Config = serde_json::from_slice(config_data.as_slice())
         .map_err(|e| NotificationError::Configuration(format!("Failed to parse config: {e}")))?;
     system.reload_config(config).await
 }

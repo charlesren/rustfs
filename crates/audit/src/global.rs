@@ -13,7 +13,7 @@
 //  limitations under the License.
 
 use crate::{AuditEntry, AuditResult, AuditSystem};
-use rustfs_ecstore::config::Config;
+use storage_core::Config;
 use std::sync::{Arc, OnceLock};
 use tracing::{debug, error, trace, warn};
 

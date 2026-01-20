@@ -13,7 +13,7 @@
 //  limitations under the License.
 
 use crate::{AuditEntry, AuditError, AuditRegistry, AuditResult, observability};
-use rustfs_ecstore::config::Config;
+use storage_core::Config;
 use rustfs_targets::{
     StoreError, Target, TargetError,
     store::{Key, Store},

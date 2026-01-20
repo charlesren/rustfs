@@ -20,7 +20,9 @@ use futures::StreamExt;
 use futures::stream::FuturesUnordered;
 use hashbrown::{HashMap, HashSet};
 use rustfs_config::{DEFAULT_DELIMITER, ENABLE_KEY, ENV_PREFIX, EnableState, audit::AUDIT_ROUTE_PREFIX};
-use rustfs_ecstore::config::{Config, KVS};
+use storage_core::{Config, KVS};
+use storage_core::config::ConfigStorage;
+use storage_sqlite::SqliteConfigStore;
 use rustfs_targets::arn::TargetID;
 use rustfs_targets::{Target, TargetError, target::ChannelTargetType};
 use std::str::FromStr;
@@ -33,6 +35,8 @@ pub struct AuditRegistry {
     targets: HashMap<String, Box<dyn Target<AuditEntry> + Send + Sync>>,
     /// Factories for creating targets
     factories: HashMap<String, Box<dyn TargetFactory>>,
+    /// Configuration storage backend
+    config_store: Arc<dyn ConfigStorage>,
 }
 
 impl Default for AuditRegistry {
@@ -44,9 +48,29 @@ impl Default for AuditRegistry {
 impl AuditRegistry {
     /// Creates a new AuditRegistry
     pub fn new() -> Self {
+        // Read backend from environment variable (default: sqlite)
+        let backend = std::env::var("AUDIT_STORAGE_BACKEND")
+            .unwrap_or_else(|_| "sqlite".to_string());
+
+        let db_path = std::env::var("AUDIT_DB_PATH")
+            .unwrap_or_else(|_| "/var/lib/robotdance/audit.db".to_string());
+
+        // Create config storage based on backend
+        let config_store: Arc<dyn ConfigStorage> = match backend.as_str() {
+            "sqlite" => Arc::new(SqliteConfigStore::new(
+                storage_sqlite::ConnectionManager::new(&db_path).unwrap()
+            )),
+            other => panic!(
+                "Unsupported storage backend: {}. Currently only 'sqlite' is supported. \
+                 Set AUDIT_STORAGE_BACKEND=sqlite or leave unset.",
+                other
+            ),
+        };
+
         let mut registry = AuditRegistry {
             factories: HashMap::new(),
             targets: HashMap::new(),
+            config_store,
         };
 
         // Register built-in factories
@@ -313,21 +337,18 @@ impl AuditRegistry {
                 }
             }
 
-            let Some(store) = rustfs_ecstore::global::new_object_layer_fn() else {
-                return Err(AuditError::StorageNotAvailable(
-                    "Failed to save target configuration: server storage not initialized".to_string(),
-                ));
-            };
+            // Save to SQLite
+            let config_json = serde_json::to_vec(&new_config)
+                .map_err(|e| AuditError::SaveConfig(Box::new(
+                    std::io::Error::new(std::io::ErrorKind::Other, format!("JSON serialize failed: {}", e))
+                )))?;
 
-            match rustfs_ecstore::config::com::save_server_config(store, &new_config).await {
-                Ok(_) => {
-                    info!("The new configuration was saved to the system successfully.")
-                }
-                Err(e) => {
-                    error!("Failed to save the new configuration: {}", e);
-                    return Err(AuditError::SaveConfig(Box::new(e)));
-                }
-            }
+            self.config_store.save_config("audit/config.json", &config_json).await
+                .map_err(|e| AuditError::SaveConfig(Box::new(
+                    std::io::Error::new(std::io::ErrorKind::Other, format!("SQLite save failed: {}", e))
+                )))?;
+
+            info!("Audit configuration saved to SQLite successfully.");
         }
 
         info!(count = successful_targets.len(), "All target processing completed");

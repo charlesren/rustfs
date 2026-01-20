@@ -27,7 +27,8 @@ documentation = "https://docs.rs/rustfs-notify/latest/rustfs_notify/"
 
 [dependencies]
 rustfs-config = { workspace = true, features = ["notify", "constants"] }
-rustfs-ecstore = { workspace = true }
+storage-core = { path = "../../../../crates/storage-core" }
+storage-sqlite = { path = "../../../../crates/storage-sqlite" }
 rustfs-targets = { workspace = true }
 rustfs-utils = { workspace = true }
 arc-swap = { workspace = true }
@@ -41,12 +42,16 @@ rayon = { workspace = true }
 rumqttc = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 starshard = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "sync", "time"] }
 tracing = { workspace = true }
 url = { workspace = true }
 wildmatch = { workspace = true, features = ["serde"] }
+
+# Keep ecstore for ObjectInfo type (used in EventArgs for compatibility)
+rustfs-ecstore = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }

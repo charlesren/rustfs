@@ -22,7 +22,7 @@ use rustfs_config::{
     MQTT_QUEUE_LIMIT, MQTT_RECONNECT_INTERVAL, MQTT_TOPIC, MQTT_USERNAME, WEBHOOK_AUTH_TOKEN, WEBHOOK_CLIENT_CERT,
     WEBHOOK_CLIENT_KEY, WEBHOOK_ENDPOINT, WEBHOOK_QUEUE_DIR, WEBHOOK_QUEUE_LIMIT,
 };
-use rustfs_ecstore::config::KVS;
+use storage_core::KVS;
 use rustfs_targets::{
     Target,
     error::TargetError,

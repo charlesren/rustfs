@@ -183,8 +183,8 @@ impl Event {
 
     pub fn new(args: EventArgs) -> Self {
         let event_time = Utc::now().naive_local();
-        let unique_id = match args.object.mod_time {
-            Some(t) => format!("{:X}", t.unix_timestamp_nanos()),
+        let unique_id: String = match args.object.mod_time {
+            Some(ref t) => format!("{:X}", t.unix_timestamp_nanos()),
             None => format!("{:X}", event_time.and_utc().timestamp_nanos_opt().unwrap_or(0)),
         };
 
@@ -195,8 +195,8 @@ impl Event {
         let key_name = form_urlencoded::byte_serialize(args.object.name.as_bytes()).collect::<String>();
         let principal_id = args.req_params.get("principalId").unwrap_or(&String::new()).to_string();
 
-        let version_id = match args.object.version_id {
-            Some(id) => Some(id.to_string()),
+        let version_id: Option<String> = match args.object.version_id {
+            Some(ref id) => Some(id.to_string()),
             None => Some(args.version_id.clone()),
         };
 
@@ -228,7 +228,7 @@ impl Event {
             s3_metadata.object.e_tag = args.object.etag.clone();
             s3_metadata.object.content_type = args.object.content_type.clone();
             // Filter out internal reserved metadata
-            let mut user_metadata = HashMap::new();
+            let mut user_metadata: HashMap<String, String> = HashMap::new();
             for (k, v) in args.object.user_defined.iter() {
                 if !k.to_lowercase().starts_with("x-amz-meta-internal-") {
                     user_metadata.insert(k.clone(), v.clone());
