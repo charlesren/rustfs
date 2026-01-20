@@ -23,7 +23,7 @@ use rustfs_config::{
     WEBHOOK_AUTH_TOKEN, WEBHOOK_CLIENT_CA, WEBHOOK_CLIENT_CERT, WEBHOOK_CLIENT_KEY, WEBHOOK_ENDPOINT, WEBHOOK_QUEUE_DIR,
     WEBHOOK_QUEUE_LIMIT, WEBHOOK_SKIP_TLS_VERIFY,
 };
-use rustfs_ecstore::config::KVS;
+use storage_core::KVS;
 use rustfs_targets::{
     Target,
     error::TargetError,
