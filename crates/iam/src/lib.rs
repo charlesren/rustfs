@@ -16,7 +16,8 @@ use crate::error::{Error, Result};
 use manager::IamCache;
 use rustfs_ecstore::store::ECStore;
 use std::sync::{Arc, OnceLock};
-use store::object::ObjectStore;
+use std::any::Any;
+use store::{Store, object::ObjectStore};
 use sys::IamSys;
 use tracing::{error, info, instrument};
 
@@ -28,6 +29,72 @@ pub mod sys;
 pub mod utils;
 
 static IAM_SYS: OnceLock<Arc<IamSys<ObjectStore>>> = OnceLock::new();
+
+// Generic IAM system that works with any Store implementation
+static IAM_SYS_GENERIC: OnceLock<Arc<dyn Any + Send + Sync>> = OnceLock::new();
+
+/// Initialize IAM with any Store implementation
+///
+/// This function allows using SQLite, PostgreSQL, or custom storage backends
+/// without modifying the IAM system code.
+///
+/// # Example
+///
+/// ```no_run
+/// use rustfs_iam::init_iam_with_store;
+/// use storage_sqlite::SqliteIamStore;
+///
+/// # #[tokio::main]
+/// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let conn_mgr = storage_sqlite::ConnectionManager::new("/path/to/iam.db")?;
+/// let store = SqliteIamStore::new(conn_mgr);
+/// init_iam_with_store(store).await?;
+/// # Ok(())
+/// # }
+/// ```
+pub async fn init_iam_with_store<S: Store + Send + Sync + 'static>(
+    store: S,
+) -> Result<()> {
+    if IAM_SYS_GENERIC.get().is_some() {
+        info!("IAM system already initialized, skipping.");
+        return Ok(());
+    }
+
+    info!("Starting IAM system initialization with generic store...");
+
+    let cache_manager = IamCache::new(store).await;
+    let iam_instance = Arc::new(IamSys::new(cache_manager));
+
+    if IAM_SYS_GENERIC.set(iam_instance).is_err() {
+        error!("Critical: Race condition detected during IAM initialization!");
+        return Err(Error::IamSysAlreadyInitialized);
+    }
+
+    info!("IAM system initialization completed successfully.");
+    Ok(())
+}
+
+/// Get IAM system instance (type-safe for specific Store type)
+///
+/// This function retrieves the global IAM system instance initialized with
+/// `init_iam_with_store()`. The type parameter `S` must match the Store type
+/// used during initialization.
+///
+/// # Example
+///
+/// ```no_run
+/// use rustfs_iam::get_iam_sys;
+/// use storage_sqlite::SqliteIamStore;
+///
+/// let iam_sys = get_iam_sys::<SqliteIamStore>()?;
+/// # Ok::<(), rustfs_iam::error::Error>(())
+/// ```
+pub fn get_iam_sys<S: Store + 'static>() -> Result<Arc<IamSys<S>>> {
+    IAM_SYS_GENERIC.get()
+        .and_then(|any| any.downcast_ref::<Arc<IamSys<S>>>())
+        .map(Arc::clone)
+        .ok_or(Error::IamSysNotInitialized)
+}
 
 #[instrument(skip(ecstore))]
 pub async fn init_iam_sys(ecstore: Arc<ECStore>) -> Result<()> {
